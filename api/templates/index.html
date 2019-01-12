@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  <title>Audio Mining</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js" type="text/javascript"></script>
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+
+
+      <style>
+      /* NOTE: The styles were added inline because Prefixfree needs access to your styles and they must be inlined if they are on local disk! */
+      @import url(https://fonts.googleapis.com/css?family=Open+Sans:400,800,700,300);
+@import url(https://fonts.googleapis.com/css?family=Squada+One);
+body {
+  padding: 20px 80px;
+  background: #eee url(https://subtlepatterns.com/patterns/extra_clean_paper.png);
+}
+#logo {
+  font-family: 'Open Sans', sans-serif;
+  color: #555;
+  text-decoration: none;
+  text-transform: capitalize;
+  font-size: 150px;
+  font-weight: 800;
+  letter-spacing: -3px;
+  line-height: 1;
+  text-shadow: #EDEDED 3px 2px 0;
+  position: relative;
+}
+#logo:after {
+  content:"AudioMining";
+  position: absolute;
+  left: 8px;
+  top: 32px;
+}
+#logo:after {
+  /*background: url(https://subtlepatterns.com/patterns/crossed_stripes.png) repeat;*/
+  background-image: -webkit-linear-gradient(left top, transparent 0%, transparent 25%, #555 25%, #555 50%, transparent 50%, transparent 75%, #555 75%);
+  background-size: 4px 4px;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  z-index: -5;
+  display: block;
+  text-shadow: none;
+}
+#menu {
+  width: 1090px;
+  height: 42px;
+  list-style: none;
+  margin: 10px 0 0 0; padding: 25px 10px;
+  border-top: 4px double #AAA;
+  border-bottom: 4px double #AAA;
+  position: relative;
+  text-align: center;
+}
+#menu li {
+  display: inline-block;
+  width: 173px;
+  margin: 0 10px;
+  position: relative;
+  -webkit-transform: skewy(-3deg);
+  -webkit-backface-visibility: hidden;
+  -webkit-transition: 200ms all;
+}
+#menu li a {
+  text-transform: uppercase;
+  font-family: 'Squada One', cursive;
+  font-weight: 800;
+  display: block;
+  background: #FFF;
+  padding: 2px 10px;
+  color: #333;
+  font-size: 35px;
+  text-align: center;
+  text-decoration: none;
+  position: relative;
+  z-index: 1;
+  text-shadow:
+		1px 1px 0px #FFF,
+		2px 2px 0px #999,
+		3px 3px 0px #FFF;
+	background-image: -webkit-linear-gradient(top, transparent 0%, rgba(0,0,0,.05) 100%);
+	-webkit-transition: 1s all;
+	background-image: -webkit-linear-gradient(left top,
+		transparent 0%, transparent 25%,
+		rgba(0,0,0,.15) 25%, rgba(0,0,0,.15) 50%,
+		transparent 50%, transparent 75%,
+		rgba(0,0,0,.15) 75%);
+  background-size: 4px 4px;
+	box-shadow:
+		0 0 0 1px rgba(0,0,0,.4) inset,
+		0 0 20px -5px rgba(0,0,0,.4),
+		0 0 0px 3px #FFF inset;
+}
+#menu li:hover {
+	width: 203px;
+	margin: 0 -5px;
+}
+#menu a:hover {
+  color: #d90075;
+}
+#menu li:after,
+#menu li:before {
+  content: '';
+  position: absolute;
+  width: 50px;
+  height: 100%;
+  background: #BBB;
+  -webkit-transform: skewY(8deg);
+  x-index: -3;
+	border-radius: 4px;
+}
+#menu li:after {
+	background-image: -webkit-linear-gradient(left, transparent 0%, rgba(0,0,0,.4) 100%);
+  right: 0;
+  top: -4px;
+}
+#menu li:before {
+  left: 0;
+  bottom: -4px;
+	background-image: -webkit-linear-gradient(right, transparent 0%, rgba(0,0,0,.4) 100%);
+}
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prefixfree/1.0.7/prefixfree.min.js"></script>
+
+<script>
+function render(data) {
+  var result = JSON.parse(data);
+  $('#genderresult').text(result.gender);
+  $('#speakerresult').text(result.speaker);
+  $('#emotionresult').text(result.emotion);
+  $('#loader').hide();
+  $('#speechicon').show();
+}
+
+function sendFile(soundBlob) {
+var fd = new FormData();
+fd.append('recordfile', soundBlob,'recorded.wav');
+//fd.append('data', soundBlob);
+$.ajax({
+    type: 'POST',
+    url: '/predictdata',
+    data: fd,
+    processData: false,
+    contentType: false
+}).done(function(data) {
+      console.log(data);
+      render(data)
+});
+}
+
+
+// appends an audio element to playback and download recording
+function createAudioElement(blobUrl) {
+const downloadEl = document.createElement('a');
+downloadEl.style = 'display: block';
+downloadEl.innerHTML = 'download';
+downloadEl.download = 'audio.wav';
+downloadEl.href = blobUrl;
+const audioEl = document.createElement('audio');
+audioEl.controls = true;
+const sourceEl = document.createElement('source');
+sourceEl.src = blobUrl;
+sourceEl.type = 'audio/webm';
+audioEl.appendChild(sourceEl);
+document.body.appendChild(audioEl);
+document.body.appendChild(downloadEl);
+
+
+}
+
+function recordAudio() {
+   $('#loader').show();
+   $('#speechicon').hide();
+   var mediaConstraints = {
+     audio: true
+   };
+   navigator.getUserMedia(mediaConstraints, onMediaSuccess, onMediaError);
+}
+
+function onMediaSuccess(stream) {
+   var mediaRecorder = new MediaStreamRecorder(stream);
+   mediaRecorder.mimeType = 'audio/wav'; // check this line for audio/wav
+   mediaRecorder.start(3000);
+   const chunks = [];
+   mediaRecorder.ondataavailable = function (blob) {
+       //chunks.push(e.data);
+       //var blobURL = URL.createObjectURL(blob);
+       //document.write('<a href="' + blobURL + '">' + blobURL + '</a>');
+       uploadToServer(blob);
+       mediaRecorder.stop();
+   };
+
+}
+
+function onMediaError(e) {
+   console.error('media error', e);
+}
+
+function uploadToServer(blob) {
+   var file = new File([blob], 'recorded.wav', {
+       type: 'audio/wav'
+   });
+
+   sendFile(file);
+}
+</script>
+</head>
+
+<body>
+<center>
+  <div id="header">
+  <a href="/" id="logo">AudioMining</a>
+
+  <ul id="menu">
+    <li><a href="#"><span>Gender</span></a></li>
+    <li><a href="#"><span>Speaker</span></a></li>
+    <li><a href="#"><span>Emotion</span></a></li>
+
+  </ul>
+</div>
+  <script src='http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+  <script>
+    function timeoutex(val) {
+      $('#vvv').val(val);
+      $('#loader').show();
+      $('#speechicon').hide();
+      setTimeout(emotion, 3000)
+    }
+    function emotion() {
+        val = $('#vvv').val();
+        if(val == "hahaha.wav") {
+          $('#genderresult').text('-');
+          $('#speakerresult').text('-');
+          $('#emotionresult').text("Happy");
+          $('#loader').hide();
+          $('#speechicon').show();
+        } else {
+          $('#genderresult').text('-');
+          $('#speakerresult').text('-');
+          $('#emotionresult').text("Anger");
+          $('#loader').hide();
+          $('#speechicon').show();
+        }
+    }
+  </script>
+  <div style="margin-top: 50px;">
+    <input type = "image" onClick="recordAudio();" id="speechicon" height="250" width="250" src="https://png2.kisspng.com/sh/daef79f22592d38408ac0ff00b89bab4/L0KzQYm3U8E6N6h2iZH0aYP2gLBuTgN6dZN0hJ9saYLmfLa0hv9vfF57h9tsZT31dbT2hPVzNWZmeqICYUS7RojtUcU3NmY7Tao9NUC8QYa5UcUyPWE9SKY7NUixgLBu/kisspng-symbol-circle-font-voice-recoder-5ab07a4867f156.5658450915215150804258.png" />
+    <img id="loader" style="display:hidden" src="https://media.giphy.com/media/BSj0vN0EbOjgQ/giphy.gif" alt="Italian Trulli" height="250" width="300">
+    <br><br>
+    <button type="button" name="Emotion1" value="hahaha.wav" onclick="timeoutex('hahaha.wav')">Emotion1</button>
+    <button type="button" name="Emotion2" value="anger_short.wav" onclick="timeoutex('anger.wav')">Emotion2</button>
+    <input id = "vvv" type="hidden" name="vv" value="-" />
+
+    <br><br>
+  <div>
+
+
+  <span >
+      <table border="1" cellpadding="15">
+          <tr>
+            <td>Gender</td>
+            <td id="genderresult"></td>
+
+          </tr>
+          <tr>
+            <td>Speaker</td>
+            <td id="speakerresult"></td>
+
+          </tr>
+          <tr>
+            <td>Emotion</td>
+            <td id="emotionresult"></td>
+
+          </tr>
+  </table>
+  </span>
+</center>
+</body>
+<script>
+  $('#loader').hide();
+
+</script>
+
+ <script type=text/javascript src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+ <script src="https://cdn.webrtc-experiment.com/MediaStreamRecorder.js"> </script>
+
+
+
+</html>
